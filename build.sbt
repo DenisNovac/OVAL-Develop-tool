@@ -12,3 +12,12 @@ libraryDependencies += "org.rogach" %% "scallop" % "3.3.2"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
+
+
+// For index storage later
+val circeVersion = "0.12.3"
+libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
+).map(_ % circeVersion)
