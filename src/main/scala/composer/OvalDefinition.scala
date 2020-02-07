@@ -9,9 +9,9 @@ package composer
   * @param title Definition's title
   * @param description Definition's description
   * @param family Definition's family (such as Windows)
-  * @param platform Definition's platform (such as Windows 7 Ultimate)
-  * @param product Definition's product (Such as Java 8)
-  * @param referenceId Definition's reference (Such as CVE-2013-5777)
+  * @param platforms Definition's platform (such as Windows 7 Ultimate)
+  * @param products Definition's product (Such as Java 8)
+  * @param references Definition's references (Such as CVE-2013-5777)
   *
   */
 
@@ -21,7 +21,21 @@ case class OvalDefinition(id: String,
                          title: String,
                          description: String,
                          family: String,
-                         platform: Vector[String],
-                         product: Vector[String],
-                         referenceId: String)
+                         platforms: Array[String],
+                         products: Array[String],
+                         references: Array[String]) {
+
+  override def toString: String =
+    s"""
+       |$id
+       |$path
+       |$ovalClass
+       |$title
+       |$description
+       |$family
+       |${platforms.mkString(",")}
+       |${products.mkString(",")}
+       |${references.mkString(",")}
+       |""".stripMargin
+}
 
