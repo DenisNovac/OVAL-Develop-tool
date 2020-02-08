@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import scala.xml.{Node, NodeSeq, XML}
 
-object OvalDecomposer {
+class OvalDecomposer(forceRewrite: Boolean = true) {
   private val logger = Logger("OVAL Decomposer")
 
   def decompose(path: String): Unit = {
@@ -90,11 +90,41 @@ object OvalDecomposer {
     case None => throw new Error(s"There is no ID in some definition: \n$xml")
   }
 
-  /** Method for saving into non-existing directories */
+  /** Method for saving OVAL entity as file to repository.
+    * It will ask confirmation for replacement if flag forceRewrite = false.
+    *
+    * TODO: Ask confirmation only for changed entities
+    * @param path folder where OVAL object will store
+    * @param name name of OVAL object
+    * @param xml OVAL object
+    */
   private def saveXmlToRepository(path: String, name: String, xml: Node): Unit = {
-    val f = new File(path)
-    if (!f.exists())
-      f.mkdirs()
-    XML.save(Paths.get(path, name).toString, xml)
+    val folder = new File(path)
+    val filepath = Paths.get(path, name).toString
+
+    if (folder.exists()) {  // if folder exists - check for file in it
+
+      if (!forceRewrite && new File(filepath).exists()) {
+        print(s"Replace existing file $filepath?  (Y/N)(Y): ")
+        try {
+          scala.io.StdIn.readChar() match {
+            case 'n'|'N' =>
+              logger.info(s"Passed $name")
+            case _ =>
+              XML.save(filepath, xml)
+              logger.info(s"Saved new $name")
+          }
+        } catch {
+          case e:StringIndexOutOfBoundsException =>
+            XML.save(filepath, xml)
+            logger.info(s"Saved new $name")
+        }
+      } else
+        XML.save(filepath, xml)
+
+    } else {  // if folder does not exists - just create it and place file
+      folder.mkdirs()
+      XML.save(filepath, xml)
+    }
   }
 }

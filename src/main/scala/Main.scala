@@ -7,8 +7,8 @@ object Main {
     val conf = new ArgumentsConfig(args)
     val path = conf.xml()
     //OvalValidator.validate(path)
-    //OvalDecomposer.decompose(path)
-    OvalIndexer.createIndex()
+    new OvalDecomposer().decompose(path)
+    //OvalIndexer.createIndex()
   }
 
 }
