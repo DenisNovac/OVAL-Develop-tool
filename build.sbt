@@ -1,4 +1,4 @@
-name := "OvalScalaTools"
+name := "OVAL-Develop-tool"
 
 version := "0.1"
 
