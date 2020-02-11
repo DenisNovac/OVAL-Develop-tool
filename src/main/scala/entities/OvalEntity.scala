@@ -1,8 +1,8 @@
 package entities
 
 trait OvalEntity {
-  val id: String
-  val path: String
+  def id: String
+  def path: String
 }
 
 case class OvalDefinition (id: String,
