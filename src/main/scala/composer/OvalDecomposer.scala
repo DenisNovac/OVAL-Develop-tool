@@ -3,13 +3,33 @@ import com.typesafe.scalalogging.Logger
 import java.io.File
 import java.nio.file.Paths
 
+import javax.xml.parsers.SAXParserFactory
+import javax.xml.stream.XMLInputFactory
+
 import scala.xml.{Node, NodeSeq, XML}
 
 class OvalDecomposer(forceRewrite: Boolean = true) {
   private val logger = Logger("OVAL Decomposer")
 
   def decompose(path: String): Unit = {
+
+    // Nothing of this works
+    /*val spf = SAXParserFactory.newInstance()
+    spf.setFeature("http://xml.org/sax/features/external-general-entities", true)
+    spf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+
+    //spf.setFeature("http://xml.org/sax/features/external-parameter-entities", true)
+
+    //val saxParser = spf.newSAXParser()
+    //val xml_parse = XML.withSAXParser(saxParser).loadFile(path)
+    //val xml_parse = XML.loadFile(path)
+
+   /* val inputFactory = XMLInputFactory.newInstance()
+    inputFactory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, false)
+    inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false)*/*/
+
     val xml_parse = XML.loadFile(path)
+
     if (xml_parse.label != "oval_definitions")
       throw new Error(s"$path is not a definitions file")
 
@@ -22,7 +42,7 @@ class OvalDecomposer(forceRewrite: Boolean = true) {
     val objects = xml \\ "objects" \ "_"
     val states = xml \\ "states" \ "_"
     val variables =  xml \\ "variables" \ "_"
-    logger.info("OVAL entries decomposed")
+    logger.info("OVAL entries parsed")
 
     logger.info(s"Decomposing ${definitions.length} definitions")
     decomposeDefinition(definitions)
