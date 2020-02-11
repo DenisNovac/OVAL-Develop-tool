@@ -83,7 +83,7 @@ object OvalIndexer {
       } }.toArray
 
       val references = { for {
-        r <- affected \ "reference"
+        r <- meta \ "reference"
       } yield {
         r.attribute("ref_id") match {
           case Some(x) => x.text
