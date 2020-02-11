@@ -1,8 +1,10 @@
 package composer
 
 import java.io.{File, FileNotFoundException}
+
 import scala.xml.XML
 import com.typesafe.scalalogging.Logger
+import entities.OvalDefinition
 
 /** Class for search through definitions before building.
   * It reads whole list of definitions and make collection of OvalDefinitions objects.
