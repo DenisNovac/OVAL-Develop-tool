@@ -10,7 +10,7 @@ object Main {
     new OvalDecomposer().decompose(path)
     val index = OvalIndexer.createIndex()
 
-
+    OvalDefinitionDepencenciesBuilder.buildGraph(index.filter(_.id=="oval:org.mitre.oval:def:18972").head)
   }
 
 }

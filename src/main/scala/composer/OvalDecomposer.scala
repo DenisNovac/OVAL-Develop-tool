@@ -3,8 +3,7 @@ import com.typesafe.scalalogging.Logger
 import java.io.File
 import java.nio.file.Paths
 
-import javax.xml.parsers.SAXParserFactory
-import javax.xml.stream.XMLInputFactory
+import FolderUtils.getThousandFolderName
 
 import scala.xml.{Node, NodeSeq, XML}
 
@@ -47,6 +46,11 @@ class OvalDecomposer(forceRewrite: Boolean = true) {
     logger.info("Decomposition complete")
   }
 
+  /** Method for getting ID  */
+  def getId(xml: Node): String = xml.attribute("id") match {
+    case Some(x) => x.mkString("").replace(":", "_")
+    case None => throw new Error(s"There is no ID in some definition: \n$xml")
+  }
 
   /** Decomposing definitions */
   private def decomposeDefinition(xmlDefinitions: NodeSeq) = for {
@@ -81,19 +85,6 @@ class OvalDecomposer(forceRewrite: Boolean = true) {
     saveXmlToRepository(s"repository/$className/$ovalFamily/$ovalType/$idFolder", s"$id.xml", c)
   }
 
-
-  /** This method will get folder name for ID */
-  private def getThousandFolderName(id: Long): String = (id/1000)*1000 match {
-    case 0 => "0000"
-    case x => x.toString
-  }
-
-
-  /** Method for getting ID  */
-  private def getId(xml: Node): String = xml.attribute("id") match {
-    case Some(x) => x.mkString("").replace(":", "_")
-    case None => throw new Error(s"There is no ID in some definition: \n$xml")
-  }
 
   /** Method for saving OVAL entity as file to repository.
     * It will ask confirmation for replacement if flag forceRewrite = false.

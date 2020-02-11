@@ -5,6 +5,7 @@ import java.io.{File, FileNotFoundException}
 import scala.xml.XML
 import com.typesafe.scalalogging.Logger
 import entities.OvalDefinition
+import FolderUtils.recursiveListFiles
 
 /** Class for search through definitions before building.
   * It reads whole list of definitions and make collection of OvalDefinitions objects.
@@ -12,10 +13,13 @@ import entities.OvalDefinition
 object OvalIndexer {
   private val logger = Logger("OVAL Indexer")
 
+  type OvalIndex = Vector[OvalDefinition]
+
+
   /** Indexing method
     * @throws FileNotFoundException if repository does not exists
     */
-  def createIndex(): Vector[OvalDefinition] = {
+  def createIndex(): OvalIndex = {
     val definitions = new File("repository/definitions")
 
     if (!definitions.exists()) {
@@ -98,11 +102,4 @@ object OvalIndexer {
 
       OvalDefinition(id.text, d.getPath, ovalClass.text, title.text, description.text, family.text, platforms, products, references)
     }
-
-
-  /** Recursive folders reading */
-  private def recursiveListFiles(f: File): Vector[File] = {
-    val files = f.listFiles
-    files ++: files.filter(_.isDirectory).flatMap(recursiveListFiles).toVector
-  }
 }
