@@ -3,7 +3,7 @@ import com.typesafe.scalalogging.Logger
 import java.io.File
 import java.nio.file.Paths
 
-import FolderUtils.getThousandFolderName
+import RepositoryUtils.getThousandFolderName
 
 import scala.xml.{Node, NodeSeq, XML}
 

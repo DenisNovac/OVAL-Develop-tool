@@ -8,7 +8,7 @@ import composer.OvalIndexer.OvalIndex
 import scala.xml.{Elem, Node, XML}
 import com.typesafe.scalalogging.Logger
 import entities.{OvalDefinition, OvalDefinitionDependenciesGraph, OvalTest}
-import FolderUtils.getThousandFolderName
+import RepositoryUtils.getFilePathForComplexOvalObjects
 
 
 
@@ -25,79 +25,65 @@ object OvalDefinitionDepencenciesBuilder {
     val (extendDefinitionsIds, testsIds) = parseDefinitionDependencies(definition)
     logger.info(s"Done parsing inner dependencies of definition")
 
-    parseTestDependencies(testsIds.head, definition.family)
+    val (objectIds, stateIds): (Vector[String], Vector[String]) = { for {
+      t <- testsIds
+    } yield {
+      parseTestDependencies(t, definition.family)
+    } }.reduce((a, b) => (a._1 ++ b._1, a._2 ++ b._2))  // Vector[(Vector[String], Vector[String])] => (Vector[String], Vector[String])
+    // other options to do the same:
+    //testDependencies.foldLeft(Vector(""), Vector("")){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}  // BAD: creates empty lines
+    //testDependencies.fold(Vector.empty[String], Vector.empty[String]){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}
+
+    println(objectIds.mkString(","))
+    println(stateIds.mkString(","))
+    ()
   }
+
 
   /** Parse one test's dependencies
     * @param testId id of the test
     * @param firstFamily from test's id there is no way to predict from which family or type it is. But we still need to
     *                    find it from structure: repository/tests/$ovalFamily/$ovalType/$idFolder
     */
-  private def parseTestDependencies(testId: String, firstFamily: String): Unit = {
+  private def parseTestDependencies(testId: String, firstFamily: String): (Vector[String], Vector[String]) = {
     logger.debug(s"Parsing test $testId dependencies")
 
-    getFilePathForComplexOvalObjects("tests", firstFamily, testId)
+    /** Finding the file of test and loading it */
+    val path = getFilePathForComplexOvalObjects("tests", firstFamily, testId)
+    val xml = XML.load(path)
+
+    /** Parsing the XML */
+    val objects = xml \ "object"
+    val states = xml \ "state"
+
+    val objectIds ={ for {
+      o <- objects
+    } yield {
+      o.attribute("object_ref") match {
+        case Some(x) => x
+        case None =>
+          val message = s"Object in test $testId does not contain object_ref attrubute"
+          logger.error(message)
+          throw new Error(message)
+      }
+    } }.flatten.toVector.map(_.text)
+
+    val stateIds = { for {
+      s <- states
+    } yield {
+      s.attribute("state_ref") match {
+        case Some(x) => x
+        case None =>
+          val message = s"State in test $testId does not contain state_ref attrubute"
+          logger.error(message)
+          throw new Error(message)
+      }
+    } }.flatten.toVector.map(_.text)
+
+    (objectIds, stateIds)
   }
 
-  /** Complex Oval objects - tests, objects and states (have structure like family/thousand_id/file) */
-  private def getFilePathForComplexOvalObjects(ovalType: String, ovalFamily: String, id: String): String = {
 
-    /** Check only given family and independent existence. For example, Windows definition won't use Linux object */
-    def getExistingFamilyFolderPaths(typePath: String, ovalFamily: String): Array[String] =
-      for {
-        fam <- Array(ovalFamily, "independent")
-        f = new File(Paths.get(typePath, fam).toString)
-        if f.exists
-      } yield f.getPath
-
-    /** There is types folders (like file_test, registry_test) inside family folder so we'll walk through each */
-    def getThousandIdFolderPaths(familyPath: String, thousandId: String): Array[String] = {
-      val familyFolder = new File(familyPath)
-      for {
-        p <- familyFolder.listFiles.map(_.getPath)
-        f = new File(Paths.get(p).toString)
-        if f.listFiles.map(_.getPath).contains(Paths.get(p, thousandId).toString)
-      } yield Paths.get(f.getPath, thousandId).toString
-    }
-
-    // Checking exitence of Family folder or Independent folder
-    val familyFolderPaths = getExistingFamilyFolderPaths(Paths.get("repository", "tests").toString, ovalFamily)
-    if (familyFolderPaths.isEmpty) {
-      val message = s"Can't find file of $id: there is no folder suitable for $id"
-      logger.error(message)
-      throw new Error(message)
-    }
-    logger.debug(s"Found suitable family folders: ${familyFolderPaths.mkString(",")}")
-
-    // Searching wanted thousand ID in those folders
-    val thousandId = getThousandFolderName(id.split(":").last.toLong)
-    val familyFolderPathsWithThousand: Array[String] = { for {
-      f <- familyFolderPaths
-    } yield getThousandIdFolderPaths(f, thousandId) }.flatten
-    if (familyFolderPathsWithThousand.isEmpty) {
-      val message = s"Can't find wanted thousand ID of $id: there is no folder $thousandId in family folders"
-      logger.error(message)
-      throw new Error(message)
-    }
-    logger.debug(s"Found suitable thousand id folders: ${familyFolderPathsWithThousand.mkString(",")}")
-
-    // Searching wanted ID file
-    val fileById = { for {
-      f <- familyFolderPathsWithThousand
-      possible = new File(Paths.get(f, id.replace(":", "_")+".xml").toString)
-      if possible.exists()
-    } yield possible }.map(_.getPath)
-
-    if (fileById.length == 1) {
-      logger.debug(s"Found file: ${fileById.head}")
-      fileById.head
-    } else {
-      val filesString = fileById.mkString(",")
-      val message = s"There is none or too much (${fileById.length}) of suitable OVAL files: $filesString"
-      logger.error(message)
-      throw new Error(message)
-    }
-  }
 
 
   /** Method for parsing definitions for getting it's dependencies.

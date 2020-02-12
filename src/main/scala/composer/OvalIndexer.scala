@@ -5,7 +5,7 @@ import java.io.{File, FileNotFoundException}
 import scala.xml.XML
 import com.typesafe.scalalogging.Logger
 import entities.OvalDefinition
-import FolderUtils.recursiveListFiles
+import RepositoryUtils.recursiveListFiles
 
 /** Class for search through definitions before building.
   * It reads whole list of definitions and make collection of OvalDefinitions objects.
