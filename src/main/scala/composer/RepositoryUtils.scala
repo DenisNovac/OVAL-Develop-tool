@@ -1,7 +1,6 @@
 package composer
 
 import java.io.File
-import java.lang.System.Logger
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.Logger

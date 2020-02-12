@@ -1,8 +1,5 @@
 package composer
 
-import java.io.File
-import java.nio.file.Paths
-
 import composer.OvalIndexer.OvalIndex
 
 import scala.xml.{Elem, Node, XML}
@@ -50,6 +47,7 @@ object OvalDefinitionDepencenciesBuilder {
 
     /** Finding the file of test and loading it */
     val path = getFilePathForComplexOvalObjects("tests", firstFamily, testId)
+    logger.debug(s"Found file path $path")
     val xml = XML.load(path)
 
     /** Parsing the XML */
