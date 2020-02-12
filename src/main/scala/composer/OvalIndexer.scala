@@ -4,7 +4,7 @@ import java.io.{File, FileNotFoundException}
 
 import scala.xml.XML
 import com.typesafe.scalalogging.Logger
-import entities.OvalDefinition
+import entities._
 import RepositoryUtils.recursiveListFiles
 
 /** Class for search through definitions before building.
@@ -13,36 +13,50 @@ import RepositoryUtils.recursiveListFiles
 object OvalIndexer {
   private val logger = Logger("OVAL Indexer")
 
-  type OvalIndex = Vector[OvalDefinition]
-
+  type DefinitionIndex = Vector[OvalDefinition]
+  type ElementIndex = Map[String, Vector[OvalEntity]]
 
   /** Indexing method
     * @throws FileNotFoundException if repository does not exists
     */
-  def createIndex(): OvalIndex = {
-    val definitions = new File("repository/definitions")
-
-    if (!definitions.exists()) {
-      val message = "Repository does not exists or does not contains 'definitions' directory"
-      logger.error(message)
-      throw new Error(message)
-    }
-
+  def createIndex(): (DefinitionIndex, ElementIndex) = {
 
     logger.info("Repository found, reading definitions")
-    val definitionsList = recursiveListFiles(definitions).filter(_.isFile)
-    logger.info(s"Found ${definitionsList.length} definitions")
 
-    val index = indexDefinitions(definitionsList)
-    logger.info(s"Parsed ${index.length} definitions")
+    val definitionIndex = indexDefinitions()
+    logger.info(s"Parsed ${definitionIndex.length} definitions")
 
-    index
+    logger.info("Reading elements")
+    val testsIndex = indexElements("tests")
+    val objectsIndex = indexElements("objects")
+    val statesIndex = indexElements("states")
+    val variablesIndex = indexElements("variables")
+
+    val elementIndex = Map("tests" -> testsIndex, "objects" -> objectsIndex, "states" -> statesIndex, "variables" -> variablesIndex)
+
+
+    logger.info(s"Parsed ${testsIndex.length} tests, ${objectsIndex.length} objects, ${statesIndex.length} states, " +
+      s"${variablesIndex.length} variables (${elementIndex.values.flatten.size})")
+
+
+    (definitionIndex, elementIndex)
   }
 
 
 
   /** Definition parsing and collecting metadata */
-  private def indexDefinitions(definitions: Vector[File]): Vector[OvalDefinition] = for {
+  private def indexDefinitions(): Vector[OvalDefinition] = {
+    val definitionsFolder = new File("repository/definitions")
+
+    if (!definitionsFolder.exists()) {
+      val message = "Repository does not exists or does not contains 'definitions' directory"
+      logger.error(message)
+      throw new Error(message)
+    }
+
+    val definitions = recursiveListFiles(definitionsFolder).filter(_.isFile)
+    logger.info(s"Found ${definitions.length} definitions")
+    for {
       d <- definitions
     } yield {
       val definition = XML.loadFile(d)
@@ -101,5 +115,42 @@ object OvalIndexer {
       } }.toArray
 
       OvalDefinition(id.text, d.getPath, ovalClass.text, title.text, description.text, family.text, platforms, products, references)
+    }}
+
+
+
+
+
+  private def indexElements(ovalType: String): Vector[OvalEntity] = {
+    val elementsFolder = new File(s"repository/$ovalType")
+
+    if (!elementsFolder.exists()) {
+      val message = s"Repository does not exists or does not contains $ovalType directory"
+      logger.error(message)
+      throw new Error(message)
     }
+
+    val elements = recursiveListFiles(elementsFolder).filter(_.isFile)
+
+    for {
+      e <- elements
+    } yield {
+      val elem = XML.loadFile(e)
+
+      val id = elem.attribute("id") match {
+        case Some(x) => x.text
+        case None =>
+          val message = s"Element from $ovalType does not contain ID: \n $elem"
+          logger.error(message)
+          throw new Error(message)
+      }
+
+      ovalType match {
+        case "tests" => OvalTest(id, e.getPath)
+        case "objects" => OvalObject(id, e.getPath)
+        case "states" => OvalState(id, e.getPath)
+        case "variables" => OvalVariable(id, e.getPath)
+      }
+    }
+  }
 }

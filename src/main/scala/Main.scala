@@ -8,9 +8,19 @@ object Main {
     val path = conf.xml()
     //OvalValidator.validate(path)
     new OvalDecomposer().decompose(path)
-    val index = OvalIndexer.createIndex()
+    val (definitionIndex, elementIndex) = OvalIndexer.createIndex()
 
-    OvalDefinitionDepencenciesBuilder.buildGraph(index.filter(_.id=="oval:org.mitre.oval:def:18972").head)
+    for {
+      e <- elementIndex("variables")
+    } yield {
+      println(e)
+    }
+    //OvalDefinitionDepencenciesBuilder.buildGraph(index, index.filter(_.id=="oval:org.mitre.oval:def:18972").head)
+    /*or {
+      i <- index
+    } yield {
+      OvalDefinitionDepencenciesBuilder.buildGraph(index, i)
+    }*/
   }
 
 }

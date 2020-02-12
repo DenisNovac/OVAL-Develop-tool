@@ -1,6 +1,6 @@
 package composer
 
-import composer.OvalIndexer.OvalIndex
+import composer.OvalIndexer.DefinitionIndex
 
 import scala.xml.{Elem, Node, XML}
 import com.typesafe.scalalogging.Logger
@@ -17,22 +17,41 @@ object OvalDefinitionDepencenciesBuilder {
     * @param index is used to get dependent definitions out of it by ID
     * @param definition definition for which one wants to build a graph
     */
-  def buildGraph(index: OvalIndex, definition: OvalDefinition) = {
+  def buildGraph(index: DefinitionIndex, definition: OvalDefinition) = {
     logger.info(s"Building graph for definition ${definition.id}")
     val (extendDefinitionsIds, testsIds) = parseDefinitionDependencies(definition)
-    logger.info(s"Done parsing inner dependencies of definition")
+    //logger.debug(s"Done parsing inner dependencies of definition")
 
-    val (objectIds, stateIds): (Vector[String], Vector[String]) = { for {
+    val testsDependencies: Vector[(Vector[String], Vector[String])] =  for {
       t <- testsIds
     } yield {
       parseTestDependencies(t, definition.family)
-    } }.reduce((a, b) => (a._1 ++ b._1, a._2 ++ b._2))  // Vector[(Vector[String], Vector[String])] => (Vector[String], Vector[String])
-    // other options to do the same:
-    //testDependencies.foldLeft(Vector(""), Vector("")){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}  // BAD: creates empty lines
-    //testDependencies.fold(Vector.empty[String], Vector.empty[String]){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}
+    }
 
-    println(objectIds.mkString(","))
-    println(stateIds.mkString(","))
+    if (testsDependencies.nonEmpty) {
+      val (objectIds, stateIds): (Vector[String], Vector[String]) =
+        testsDependencies.reduce((a, b) => (a._1 ++ b._1, a._2 ++ b._2))
+      // other options to do the same:
+      //testDependencies.foldLeft(Vector(""), Vector("")){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}  // BAD: creates empty lines
+      //testDependencies.fold(Vector.empty[String], Vector.empty[String]){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}
+
+      /*println(objectIds.mkString(","))
+      println(stateIds.mkString(","))*/
+      for {
+        id <- objectIds
+      } yield {
+        val p = getFilePathForComplexOvalObjects("objects", definition.family, id)
+        //println(p)
+      }
+
+      for {
+        id <- stateIds
+      } yield {
+        val p = getFilePathForComplexOvalObjects("states", definition.family, id)
+        //println(p)
+      }
+    }
+
     ()
   }
 
@@ -43,11 +62,11 @@ object OvalDefinitionDepencenciesBuilder {
     *                    find it from structure: repository/tests/$ovalFamily/$ovalType/$idFolder
     */
   private def parseTestDependencies(testId: String, firstFamily: String): (Vector[String], Vector[String]) = {
-    logger.debug(s"Parsing test $testId dependencies")
+    //logger.debug(s"Parsing test $testId dependencies")
 
     /** Finding the file of test and loading it */
     val path = getFilePathForComplexOvalObjects("tests", firstFamily, testId)
-    logger.debug(s"Found file path $path")
+    //logger.debug(s"Found file path $path")
     val xml = XML.load(path)
 
     /** Parsing the XML */
