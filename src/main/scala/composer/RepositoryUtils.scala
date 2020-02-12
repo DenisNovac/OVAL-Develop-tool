@@ -55,7 +55,7 @@ object RepositoryUtils {
     }
 
     // Checking exitence of Family folder or Independent folder
-    val familyFolderPaths = getExistingFamilyFolderPaths(Paths.get("repository", "tests").toString, ovalFamily)
+    val familyFolderPaths = getExistingFamilyFolderPaths(Paths.get("repository", ovalType).toString, ovalFamily)
     if (familyFolderPaths.isEmpty) {
       val message = s"Can't find file of $id: there is no folder suitable for $id"
       logger.error(message)
@@ -69,7 +69,7 @@ object RepositoryUtils {
       f <- familyFolderPaths
     } yield getThousandIdFolderPaths(f, thousandId) }.flatten
     if (familyFolderPathsWithThousand.isEmpty) {
-      val message = s"Can't find wanted thousand ID of $id: there is no folder $thousandId in family folders"
+      val message = s"Can't find wanted thousand ID of $id - there is no folder $thousandId in family folders"
       logger.error(message)
       throw new Error(message)
     }
