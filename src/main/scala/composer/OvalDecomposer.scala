@@ -61,6 +61,13 @@ class OvalDecomposer(forceRewrite: Boolean = true) {
       case Some(x) => x
       case None => throw new Error(s"There is no class in some definition: \n$d")
     }
+
+    /** This check is for original CISecurity OVAL Repository compatibility */
+    val ovalRepositoryTimestamp = d \\ "metadata" \\ "oval_repository" \\ "dates" \\ "submitted" \\ "contributor"
+    if (ovalRepositoryTimestamp.isEmpty) logger.warn(s"There is no oval_repository/dates tag in definition $id. " +
+      s"It will be impossible to build this definition with CISecurity OVALRepo tools (see: https://github.com/CISecurity/OVALRepo/issues/1718). " +
+      s"However, dates tag is not necessary for this tool.")
+
     saveXmlToRepository(s"repository/definitions/$definitionType", s"$id.xml", d)
   }
 
