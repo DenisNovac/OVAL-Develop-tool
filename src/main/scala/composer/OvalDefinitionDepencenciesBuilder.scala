@@ -1,11 +1,10 @@
 package composer
 
-import composer.OvalIndexer.DefinitionIndex
+import composer.OvalIndexer.{DefinitionIndex, ElementIndex}
 
-import scala.xml.{Elem, Node, XML}
+import scala.xml.{Elem, XML}
 import com.typesafe.scalalogging.Logger
-import entities.{OvalDefinition, OvalDefinitionDependenciesGraph, OvalTest}
-import RepositoryUtils.getFilePathForComplexOvalObjects
+import entities._
 
 
 
@@ -14,59 +13,46 @@ object OvalDefinitionDepencenciesBuilder {
   private val logger = Logger("OVAL Dependencies Builder")
 
   /** Method for building Dependencies Graph for given definition on given index
-    * @param index is used to get dependent definitions out of it by ID
+    * @param definitionIndex is used to get dependent definitions out of it by ID
     * @param definition definition for which one wants to build a graph
     */
-  def buildGraph(index: DefinitionIndex, definition: OvalDefinition) = {
+  def buildGraph(definitionIndex: DefinitionIndex, elementIndex: ElementIndex, definition: OvalDefinition) = {
     logger.info(s"Building graph for definition ${definition.id}")
     val (extendDefinitionsIds, testsIds) = parseDefinitionDependencies(definition)
-    //logger.debug(s"Done parsing inner dependencies of definition")
 
     val testsDependencies: Vector[(Vector[String], Vector[String])] =  for {
-      t <- testsIds
+      id <- testsIds
     } yield {
-      parseTestDependencies(t, definition.family)
+      parseTestDependencies(elementIndex("tests").filter(_.id == id).head.path, definition.family)
     }
 
     if (testsDependencies.nonEmpty) {
       val (objectIds, stateIds): (Vector[String], Vector[String]) =
         testsDependencies.reduce((a, b) => (a._1 ++ b._1, a._2 ++ b._2))
-      // other options to do the same:
-      //testDependencies.foldLeft(Vector(""), Vector("")){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}  // BAD: creates empty lines
-      //testDependencies.fold(Vector.empty[String], Vector.empty[String]){case (a,(o,s)) => (a._1 ++ o, a._2 ++ s)}
 
-      /*println(objectIds.mkString(","))
-      println(stateIds.mkString(","))*/
       for {
         id <- objectIds
       } yield {
-        val p = getFilePathForComplexOvalObjects("objects", definition.family, id)
+        val p = elementIndex("objects").filter(_.id == id)
         //println(p)
       }
 
       for {
         id <- stateIds
       } yield {
-        val p = getFilePathForComplexOvalObjects("states", definition.family, id)
+        val p = elementIndex("states").filter(_.id == id)
         //println(p)
       }
     }
-
-    ()
   }
 
 
   /** Parse one test's dependencies
-    * @param testId id of the test
+    * @param path to the test
     * @param firstFamily from test's id there is no way to predict from which family or type it is. But we still need to
     *                    find it from structure: repository/tests/$ovalFamily/$ovalType/$idFolder
     */
-  private def parseTestDependencies(testId: String, firstFamily: String): (Vector[String], Vector[String]) = {
-    //logger.debug(s"Parsing test $testId dependencies")
-
-    /** Finding the file of test and loading it */
-    val path = getFilePathForComplexOvalObjects("tests", firstFamily, testId)
-    //logger.debug(s"Found file path $path")
+  private def parseTestDependencies(path: String, firstFamily: String): (Vector[String], Vector[String]) = {
     val xml = XML.load(path)
 
     /** Parsing the XML */
@@ -79,7 +65,7 @@ object OvalDefinitionDepencenciesBuilder {
       o.attribute("object_ref") match {
         case Some(x) => x
         case None =>
-          val message = s"Object in test $testId does not contain object_ref attrubute"
+          val message = s"Object in test $path does not contain object_ref attrubute"
           logger.error(message)
           throw new Error(message)
       }
@@ -91,7 +77,7 @@ object OvalDefinitionDepencenciesBuilder {
       s.attribute("state_ref") match {
         case Some(x) => x
         case None =>
-          val message = s"State in test $testId does not contain state_ref attrubute"
+          val message = s"State in test $path does not contain state_ref attrubute"
           logger.error(message)
           throw new Error(message)
       }
