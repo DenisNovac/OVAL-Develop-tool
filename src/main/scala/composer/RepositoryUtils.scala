@@ -61,7 +61,7 @@ object RepositoryUtils {
       logger.error(message)
       throw new Error(message)
     }
-    logger.debug(s"Found suitable family folders: ${familyFolderPaths.mkString(",")}")
+    //logger.debug(s"Found suitable family folders: ${familyFolderPaths.mkString(",")}")
 
     // Searching wanted thousand ID in those folders
     val thousandId = getThousandFolderName(id.split(":").last.toLong)
@@ -73,7 +73,7 @@ object RepositoryUtils {
       logger.error(message)
       throw new Error(message)
     }
-    logger.debug(s"Found suitable thousand id folders: ${familyFolderPathsWithThousand.mkString(",")}")
+    //logger.debug(s"Found suitable thousand id folders: ${familyFolderPathsWithThousand.mkString(",")}")
 
     // Searching wanted ID file
     val fileById = { for {
