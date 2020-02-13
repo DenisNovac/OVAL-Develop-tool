@@ -14,12 +14,13 @@ object OvalIndexer {
   private val logger = Logger("OVAL Indexer")
 
   type DefinitionIndex = Vector[OvalDefinition]
-  type ElementIndex = Tuple4[Vector[OvalTest], Vector[OvalObject], Vector[OvalState], Vector[OvalVariable]]
+  type ElementIndex = (Vector[OvalTest], Vector[OvalObject], Vector[OvalState], Vector[OvalVariable])
+  type OvalIndex = (DefinitionIndex, ElementIndex)
 
   /** Indexing method
     * @throws FileNotFoundException if repository does not exists
     */
-  def createIndex(): (DefinitionIndex, ElementIndex) = {
+  def createIndex(): OvalIndex = {
 
     logger.info("Repository found, reading definitions")
 

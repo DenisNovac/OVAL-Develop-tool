@@ -1,9 +1,9 @@
 package entities
 
 case class OvalDefinitionDependenciesGraph(rootDefinition: OvalDefinition,
-                                           externalDefinitions: Array[OvalDefinition],
-                                           tests: Array[OvalTest],
-                                           objects: Array[OvalObject],
-                                           states: Array[OvalState],
-                                           variables: Array[OvalVariable]
+                                           externalDefinitions: Vector[OvalDefinition],
+                                           tests: Vector[OvalTest],
+                                           objects: Vector[OvalObject],
+                                           states: Vector[OvalState],
+                                           variables: Vector[OvalVariable]
                                           )
