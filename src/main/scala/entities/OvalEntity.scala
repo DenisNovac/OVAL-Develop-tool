@@ -1,4 +1,5 @@
 package entities
+import scala.reflect.runtime.universe._
 
 trait OvalEntity {
   def id: String
@@ -19,3 +20,10 @@ case class OvalTest(id: String, path: String) extends OvalEntity
 case class OvalObject(id: String, path: String) extends OvalEntity
 case class OvalState(id: String, path: String) extends OvalEntity
 case class OvalVariable(id: String, path: String) extends OvalEntity
+
+
+
+abstract class Factory[T <: OvalEntity] {
+  def createT(id: String, path: String): T
+}
+

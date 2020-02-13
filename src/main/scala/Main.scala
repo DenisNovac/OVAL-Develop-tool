@@ -10,17 +10,20 @@ object Main {
     new OvalDecomposer().decompose(path)
     val (definitionIndex, elementIndex) = OvalIndexer.createIndex()
 
+    OvalDefinitionDepencenciesBuilder.buildGraph(definitionIndex, elementIndex, definitionIndex.filter(_.id=="oval:org.mitre.oval:def:18972").head)
+
+
     /*for {
       e <- elementIndex("variables")
     } yield {
       println(e)
     }*/
-    //OvalDefinitionDepencenciesBuilder.buildGraph(index, index.filter(_.id=="oval:org.mitre.oval:def:18972").head)
-    for {
+
+    /*for {
       i <- definitionIndex
     } yield {
       OvalDefinitionDepencenciesBuilder.buildGraph(definitionIndex, elementIndex, i)
-    }
+    }*/
 
 
   }

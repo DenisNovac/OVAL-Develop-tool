@@ -1,7 +1,7 @@
 package composer
 
 import java.io.{File, FileNotFoundException}
-
+import scala.reflect.runtime.universe._
 import scala.xml.XML
 import com.typesafe.scalalogging.Logger
 import entities._
@@ -14,7 +14,7 @@ object OvalIndexer {
   private val logger = Logger("OVAL Indexer")
 
   type DefinitionIndex = Vector[OvalDefinition]
-  type ElementIndex = Map[String, Vector[OvalEntity]]
+  type ElementIndex = Tuple4[Vector[OvalTest], Vector[OvalObject], Vector[OvalState], Vector[OvalVariable]]
 
   /** Indexing method
     * @throws FileNotFoundException if repository does not exists
@@ -27,17 +27,38 @@ object OvalIndexer {
     logger.info(s"Parsed ${definitionIndex.length} definitions")
 
     logger.info("Reading elements")
-    val testsIndex = indexElements("tests")
-    val objectsIndex = indexElements("objects")
-    val statesIndex = indexElements("states")
-    val variablesIndex = indexElements("variables")
 
-    val elementIndex = Map("tests" -> testsIndex, "objects" -> objectsIndex, "states" -> statesIndex, "variables" -> variablesIndex)
+    /** Factories with methods for creation of some T
+      * TODO: Replace it somewhere
+      * */
+
+    implicit object FactoryT extends Factory[OvalTest] {
+      override def createT(id: String, path: String): OvalTest = new OvalTest(id, path)
+    }
+
+    implicit object FactoryOb extends Factory[OvalObject] {
+      override def createT(id: String, path: String): OvalObject = new OvalObject(id, path)
+    }
+
+    implicit object FactorySt extends Factory[OvalState] {
+      override def createT(id: String, path: String): OvalState = new OvalState(id, path)
+    }
+
+    implicit object FactoryVar extends Factory[OvalVariable] {
+      override def createT(id: String, path: String): OvalVariable = new OvalVariable(id, path)
+    }
 
 
+    val testsIndex = new ElementsIndexer[OvalTest].indexElements("tests")
+    val objectsIndex =  new ElementsIndexer[OvalObject].indexElements("objects")
+    val statesIndex =  new ElementsIndexer[OvalState].indexElements("states")
+    val variablesIndex =  new ElementsIndexer[OvalVariable].indexElements("variables")
+
+    val elementIndex = (testsIndex, objectsIndex, statesIndex, variablesIndex)
+
+    val sumLength = testsIndex.length + objectsIndex.length + statesIndex.length + variablesIndex.length
     logger.info(s"Parsed ${testsIndex.length} tests, ${objectsIndex.length} objects, ${statesIndex.length} states, " +
-      s"${variablesIndex.length} variables (${elementIndex.values.flatten.size})")
-
+      s"${variablesIndex.length} variables ($sumLength)")
 
     (definitionIndex, elementIndex)
   }
@@ -118,38 +139,43 @@ object OvalIndexer {
     }}
 
 
+  class ElementsIndexer[T <: OvalEntity] {  // T is a subtype of OvalEntity;
 
-
-
-  private def indexElements(ovalType: String): Vector[OvalEntity] = {
-    val elementsFolder = new File(s"repository/$ovalType")
-
-    if (!elementsFolder.exists()) {
-      val message = s"Repository does not exists or does not contains $ovalType directory"
-      logger.error(message)
-      throw new Error(message)
+    /** TODO: Process folder from given type through reflection */
+    /*implicit private val tag: TypeTag[T] = typeTag[T]
+    private def getTypeString(implicit tag: TypeTag[T]): String = typeOf[T] match {
+      case t if t =:= typeOf[OvalTest] => "tests"
+      case t if t =:= typeOf[OvalObject]=> "objects"
+      case t if t =:= typeOf[OvalState]=> "states"
+      case t if t =:= typeOf[OvalVariable] => "variables"
     }
+    private val ovalType = getTypeString*/
 
-    val elements = recursiveListFiles(elementsFolder).filter(_.isFile)
+    /** Factory is a object which contains methods for creating correct T */
+    def indexElements(ovalType: String)(implicit factory: Factory[T]): Vector[T] = {
+      val elementsFolder = new File(s"repository/$ovalType")
 
-    for {
-      e <- elements
-    } yield {
-      val elem = XML.loadFile(e)
-
-      val id = elem.attribute("id") match {
-        case Some(x) => x.text
-        case None =>
-          val message = s"Element from $ovalType does not contain ID: \n $elem"
-          logger.error(message)
-          throw new Error(message)
+      if (!elementsFolder.exists()) {
+        val message = s"Repository does not exists or does not contains $ovalType directory"
+        logger.error(message)
+        throw new Error(message)
       }
 
-      ovalType match {
-        case "tests" => OvalTest(id, e.getPath)
-        case "objects" => OvalObject(id, e.getPath)
-        case "states" => OvalState(id, e.getPath)
-        case "variables" => OvalVariable(id, e.getPath)
+      val elements = recursiveListFiles(elementsFolder).filter(_.isFile)
+
+      for {
+        e <- elements
+      } yield {
+        val elem = XML.loadFile(e)
+
+        val id = elem.attribute("id") match {
+          case Some(x) => x.text
+          case None =>
+            val message = s"Element from $ovalType does not contain ID: \n $elem"
+            logger.error(message)
+            throw new Error(message)
+        }
+      factory.createT(id, e.getPath)
       }
     }
   }
